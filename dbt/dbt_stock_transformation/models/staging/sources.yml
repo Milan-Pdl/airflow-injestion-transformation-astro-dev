@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: stock
+    description: "Transformation of Nepali Stocks"
+    database: Stock  # Ensure this matches your local database name in profiles.yml
+    schema: raw
+    tables:
+      - name: company
+        description: "List of company registered in Nepsa."
+      - name: stock_market_data
+        description: "Nepsa live market information"
+ 

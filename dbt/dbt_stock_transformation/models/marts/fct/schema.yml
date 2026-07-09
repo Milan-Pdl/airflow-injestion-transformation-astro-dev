@@ -1,0 +1,291 @@
+version: 2
+
+models:
+  - name: kpi_market_summary_daily
+    description: "Market-level daily KPIs: total volume, average closing price, companies traded and other aggregates useful for dashboards."
+    columns:
+      - name: trade_date
+        description: "The trading date for the aggregated metrics."
+      - name: companies_traded
+        description: "Number of distinct companies that had trades on the date."
+      - name: total_volume
+        description: "Sum of volumes across all companies for the date."
+
+  - name: kpi_company_momentum
+    description: "Per-company momentum KPIs: daily return, 7-day and 30-day percent change to support trend charts."
+    columns:
+      - name: company_key
+        description: "Hashed company identifier."
+      - name: pct_change_7d
+        description: "Percent price change vs 7 days ago."
+
+  - name: kpi_volatility_metrics
+    description: "Rolling volatility and average return (30-day window) per company. Useful for volatility heatmaps and ranking."
+    columns:
+      - name: stddev_pct_change_30d
+        description: "30-day rolling standard deviation of daily percent changes."
+
+  - name: kpi_liquidity_metrics
+    description: "Liquidity-related KPIs: 7/30 day average volumes and percent difference versus 30-day average."
+    columns:
+      - name: avg_volume_7d
+        description: "7-day average daily volume per company."
+
+  - name: kpi_top_gainers_losers
+    description: "Latest-day list of symbols with LTP, point-change and percent-change; use for Top Gainers/Top Losers tables."
+    columns:
+      - name: stock_symbol
+        description: "Stock symbol / ticker."
+      - name: ltp
+        description: "Last traded / closing price for the latest date."
+      - name: pct_change
+        description: "Percent change vs previous closing price."
+
+  - name: kpi_top_turnover
+    description: "Latest-day turnover per symbol (amount) and LTP; use for Top Turnover/Top Volume charts."
+    columns:
+      - name: stock_symbol
+        description: "Stock symbol / ticker."
+      - name: turnover
+        description: "Traded amount used as turnover metric."
+
+  - name: kpi_top_gainers_losers_weekly
+    description: "Latest-day weekly performance view showing gain/loss direction and percent change over a 7-day window."
+    columns:
+      - name: stock_symbol
+        description: "Stock symbol / ticker."
+      - name: pct_change_7d
+        description: "Percent change over the previous 7 trading days."
+      - name: weekly_direction
+        description: "Whether the stock posted a Gain, Loss, or Flat move over the weekly window."
+
+  - name: kpi_top_gainers_losers_monthly
+    description: "Latest-day monthly performance view showing gain/loss direction and percent change over a 30-day window."
+    columns:
+      - name: stock_symbol
+        description: "Stock symbol / ticker."
+      - name: pct_change_30d
+        description: "Percent change over the previous 30 trading days."
+      - name: monthly_direction
+        description: "Whether the stock posted a Gain, Loss, or Flat move over the monthly window."
+
+  - name: top_gainers_loosers
+    description: "Top gainers and top losers for the latest trading date (daily view)."
+    columns:
+      - name: stock_symbol
+        description: "Stock symbol / ticker."
+      - name: company_name
+        description: "Company name / issuer."
+      - name: trade_date
+        description: "Trading date for the metric."
+      - name: previous_closing
+        description: "Previous closing price."
+      - name: closing_price
+        description: "Closing price / LTP for the trade_date."
+      - name: percent_change
+        description: "Percent change vs previous closing price."
+      - name: change_rs
+        description: "Absolute change in price (rs)."
+      - name: volume
+        description: "Traded volume on the trade_date."
+      - name: rank
+        description: "Rank within top gainers or losers."
+      - name: side
+        description: "'gainer' or 'loser' indicator."
+
+  - name: highest_trading_volumn
+    description: "Top stocks by trading volume for the latest trading date (note: filename retains 'volumn')."
+    columns:
+      - name: stock_symbol
+        description: "Stock symbol / ticker."
+      - name: company_name
+        description: "Company name / issuer."
+      - name: trade_date
+        description: "Trading date for the metric."
+      - name: volume
+        description: "Traded volume on the trade_date."
+      - name: closing_price
+        description: "Closing price / LTP."
+      - name: percent_change
+        description: "Percent change vs previous closing price."
+      - name: change_rs
+        description: "Absolute change in price (rs)."
+      - name: rank
+        description: "Rank by volume."
+
+  - name: highest_amount_traded
+    description: "Top stocks by traded amount (turnover) for the latest trading date."
+    columns:
+      - name: stock_symbol
+        description: "Stock symbol / ticker."
+      - name: company_name
+        description: "Company name / issuer."
+      - name: trade_date
+        description: "Trading date for the metric."
+      - name: amount
+        description: "Traded amount (turnover) on the trade_date."
+      - name: closing_price
+        description: "Closing price / LTP."
+      - name: percent_change
+        description: "Percent change vs previous closing price."
+      - name: change_rs
+        description: "Absolute change in price (rs)."
+      - name: rank
+        description: "Rank by amount."
+
+  - name: most_volatile_stock
+    description: "Most volatile stocks for the latest trading date (intraday range-based volatility)."
+    columns:
+      - name: stock_symbol
+        description: "Stock symbol / ticker."
+      - name: company_name
+        description: "Company name / issuer."
+      - name: trade_date
+        description: "Trading date for the metric."
+      - name: max_price
+        description: "Highest traded price on the date."
+      - name: min_price
+        description: "Lowest traded price on the date."
+      - name: true_range
+        description: "max_price - min_price (absolute intraday range)."
+      - name: volatility_pct
+        description: "Intraday volatility as percentage of previous close."
+      - name: percent_change
+        description: "Percent change vs previous closing price."
+      - name: volume
+        description: "Traded volume on the trade_date."
+      - name: rank
+        description: "Rank by volatility."
+
+  - name: daily_market_summary
+    description: "Daily market-level summary (total stocks, volume, amount, average return, gainers/losers)."
+    columns:
+      - name: trade_date
+        description: "Trading date for the summary."
+      - name: total_stocks
+        description: "Count of distinct stock symbols traded on the date."
+      - name: total_volume
+        description: "Sum of traded volumes across all stocks."
+      - name: total_amount
+        description: "Sum of traded amounts across all stocks."
+      - name: avg_return
+        description: "Average percent change across all stocks."
+      - name: gainers
+        description: "Count of stocks with positive percent change."
+      - name: losers
+        description: "Count of stocks with negative percent change."
+
+  - name: fct_stock_history
+    description: "Fact table containing historical per-stock per-day records loaded from intermediate_liveShare. Used as source for historical aggregations."
+    columns:
+      - name: stock_date_key
+        description: "Unique key for stock/date record."
+      - name: stock_symbol
+        description: "Stock symbol / ticker."
+      - name: company_name
+        description: "Company name / issuer."
+      - name: trade_date
+        description: "Trade date for the record."
+      - name: percent_change
+        description: "Percent change vs previous closing."
+      - name: volume
+        description: "Traded volume on the trade_date."
+      - name: amount
+        description: "Traded amount (turnover) on the trade_date."
+
+  - name: historically_top_gainers_loosers
+    description: "Historical top gainers/losers aggregated from `fct_stock_history` with `no_of_day` and average percent change."
+    columns:
+      - name: stock_symbol
+        description: "Stock symbol / ticker."
+      - name: company_name
+        description: "Company name / issuer."
+      - name: no_of_day
+        description: "Number of distinct trading days included for the stock."
+      - name: avg_percent_change
+        description: "Average percent change across the historical window."
+      - name: gain_days
+        description: "Count of days with positive percent change."
+      - name: loss_days
+        description: "Count of days with negative percent change."
+      - name: avg_difference_rs
+        description: "Average absolute price change (rs)."
+      - name: avg_volume
+        description: "Average daily volume across the historical window."
+      - name: rank
+        description: "Rank by average percent change."
+      - name: side
+        description: "'gainer' or 'loser' indicator."
+
+  - name: historically_most_volatile_stock
+    description: "Historical volatility aggregated over available days with `no_of_day`."
+    columns:
+      - name: stock_symbol
+        description: "Stock symbol / ticker."
+      - name: company_name
+        description: "Company name / issuer."
+      - name: no_of_day
+        description: "Number of distinct trading days included for the stock."
+      - name: avg_true_range
+        description: "Average intraday true range (max_price - min_price)."
+      - name: avg_volatility_pct
+        description: "Average intraday volatility percent across days."
+      - name: max_volatility_pct
+        description: "Maximum observed intraday volatility percent."
+      - name: rank
+        description: "Rank by average volatility."
+
+  - name: historically_highest_trading_volume
+    description: "Historical totals and averages for trading volume per stock, with `no_of_day`."
+    columns:
+      - name: stock_symbol
+        description: "Stock symbol / ticker."
+      - name: company_name
+        description: "Company name / issuer."
+      - name: no_of_day
+        description: "Number of distinct trading days included for the stock."
+      - name: total_volume
+        description: "Sum of daily volumes across the historical period."
+      - name: avg_volume
+        description: "Average daily volume across the historical period."
+      - name: max_volume
+        description: "Maximum daily volume observed."
+      - name: rank
+        description: "Rank by total historical volume."
+
+  - name: historically_highest_amount_traded
+    description: "Historical totals and averages for traded amount (turnover) per stock, with `no_of_day`."
+    columns:
+      - name: stock_symbol
+        description: "Stock symbol / ticker."
+      - name: company_name
+        description: "Company name / issuer."
+      - name: no_of_day
+        description: "Number of distinct trading days included for the stock."
+      - name: total_amount
+        description: "Sum of daily traded amounts across the historical period."
+      - name: avg_amount
+        description: "Average daily traded amount across the historical period."
+      - name: max_amount
+        description: "Maximum daily traded amount observed."
+      - name: rank
+        description: "Rank by total historical amount."
+
+  - name: historically_market_summary
+    description: "Aggregate summary across historical data (total stocks, days, totals, avg returns, gain/loss days)."
+    columns:
+      - name: total_stocks
+        description: "Total distinct stocks present in history."
+      - name: no_of_day
+        description: "Number of distinct trade dates included in the historical summary."
+      - name: total_volume
+        description: "Sum of traded volumes across the historical data."
+      - name: total_amount
+        description: "Sum of traded amounts across the historical data."
+      - name: avg_return
+        description: "Average percent change across all historical records."
+      - name: gain_days
+        description: "Total count of days with positive percent change across all stocks."
+      - name: loss_days
+        description: "Total count of days with negative percent change across all stocks."
+

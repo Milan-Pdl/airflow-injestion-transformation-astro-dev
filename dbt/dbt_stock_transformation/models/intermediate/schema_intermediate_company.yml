@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: intermediate_company
+    description: "Intermediate company model with cleaned, casted, and deduplicated rows"
+    columns:
+      - name: company_id
+        description: "Surrogate key generated for deduplicated company rows"
+        tests:
+          - not_null
+          - unique
+          
+      - name: source_company_id
+        description: "Original company identifier from staging"
+        tests:
+          - not_null
+          - unique
+      - name: company_name
+        description: "Normalized company name"
+        tests:
+          - not_null
+      - name: stock_symbol
+        description: "stock symbole as per the company"    
+
+      - name: sector_id
+        description: "sector id of the company"
+
+      - name: sector_name
+        description: "sector name as per the company"       
+
+      - name: loaded_at
+        description: "Original creation timestamp"
+

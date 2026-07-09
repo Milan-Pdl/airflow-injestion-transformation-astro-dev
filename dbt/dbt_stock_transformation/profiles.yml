@@ -1,0 +1,25 @@
+# dbt_stock_transformation:
+#   outputs:
+#     dev:
+#       dbname: Stock
+#       host: localhost
+#       pass: milandada
+#       port: 5432
+#       schema: raw
+#       threads: 1
+#       type: postgres
+#       user: postgres
+#   target: dev
+
+dbt_stock_transformation:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DBT_POSTGRES_HOST', 'host.docker.internal') }}"
+      port: 5432
+      user: "{{ env_var('DBT_POSTGRES_USER', 'postgres') }}"
+      password: "{{ env_var('DBT_POSTGRES_PASSWORD', 'postgres') }}"
+      dbname: "{{ env_var('DBT_POSTGRES_DB', 'postgres') }}"
+      schema: "{{ env_var('DBT_POSTGRES_SCHEMA', 'public') }}"
+      threads: 4

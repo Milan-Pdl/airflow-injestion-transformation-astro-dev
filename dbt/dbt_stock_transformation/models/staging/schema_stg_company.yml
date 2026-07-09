@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: stg_company
+    description: "Staging model for company master data loaded from the raw company table."
+    columns:
+      - name: company_id
+        description: "Unique identifier for the company"
+      - name: company_name
+        description: "Name of the company"
+      - name: stock_symbol
+        description: "Stock symbol of the company"
+      - name: sector_id
+        description: "Identifier for the company sector"
+      - name: sector_name
+        description: "Name of the company sector"

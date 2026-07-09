@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: stg_liveShare
+    description: "Staging model for live market share data loaded from the raw stock_market_data table."
+    columns:
+      - name: stock_symbol
+        description: "Stock ticker symbol"
+      - name: company_name
+        description: "Company name associated with the stock"
+      - name: no_of_transactions
+        description: "Number of transactions recorded"
+      - name: max_price
+        description: "Maximum trade price"
+      - name: min_price
+        description: "Minimum trade price"
+      - name: opening_price
+        description: "Opening price for the trading session"
+      - name: closing_price
+        description: "Closing price for the trading session"
+      - name: amount
+        description: "Total traded amount"
+      - name: previous_closing
+        description: "Previous trading day's closing price"
+      - name: difference_rs
+        description: "Difference from previous close in rupees"
+      - name: percent_change
+        description: "Percentage change from previous close"
+      - name: volume
+        description: "Trading volume"
+      - name: ltv
+        description: "LTV indicator"
+      - name: as_of_date
+        description: "Timestamp of the market snapshot"
+      - name: as_of_date_string
+        description: "Raw textual representation of the market snapshot time"
+      - name: trade_date
+        description: "Date of the trade record"
+      - name: data_type
+        description: "Type of the market data record"

@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: intermediate_liveShare
+    description: "Intermediate model for live share data with PostgreSQL type casting applied."
+    columns:
+      - name: stock_symbol
+        description: "Stock ticker symbol"
+        tests:
+          - not_null
+      - name: company_name
+        description: "Company name associated with the stock"
+        tests:
+          - not_null
+      - name: no_of_transactions
+        description: "Number of transactions recorded"
+      - name: max_price
+        description: "Maximum trade price"
+      - name: min_price
+        description: "Minimum trade price"
+      - name: opening_price
+        description: "Opening price for the trading session"
+      - name: closing_price
+        description: "Closing price for the trading session"
+      - name: amount
+        description: "Total traded amount"
+      - name: previous_closing
+        description: "Previous trading day's closing price"
+      - name: difference_rs
+        description: "Difference from previous close in rupees"
+      - name: percent_change
+        description: "Percentage change from previous close"
+
+      - name: volume
+        description: "Trading volume"
+        
+      - name: ltv
+        description: "LTV indicator"
+
+      - name: as_of_date
+        description: "Timestamp of the market snapshot"
+        tests:
+          - not_null
+      - name: as_of_date_string
+        description: "Raw textual representation of the market snapshot time"
+
+      - name: trade_date
+        description: "Date of the trade record"
+        tests:
+          - not_null
+          
+      - name: loaded_at
+        description: "watermark column for the metadata information"
+        tests:
+          - not_null
