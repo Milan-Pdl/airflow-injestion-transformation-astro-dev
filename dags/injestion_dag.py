@@ -27,7 +27,14 @@ stock_table = f"{RAW_SCHEMA}.stock_market_data"
     catchup=False,
     tags=["ingestion", "nepalipaisa"],
 )
-def companies_ingestion_dag():  # Fixed naming consistency
+def companies_ingestion_dag():
+
+    # NEW INITIALIZATION TASK: Creates the schema safely before parallel workers begin
+    @task()
+    def prepare_database_schema() -> None:
+        hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
+        hook.run(f"CREATE SCHEMA IF NOT EXISTS {RAW_SCHEMA};")
+        print(f"Schema '{RAW_SCHEMA}' initialized cleanly.")
 
     @task()
     def fetch_companies() -> list[dict]:
@@ -46,7 +53,7 @@ def companies_ingestion_dag():  # Fixed naming consistency
     def load_companies(companies: list[dict]) -> None:
         hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
         
-        hook.run(f"CREATE SCHEMA IF NOT EXISTS {RAW_SCHEMA};")
+        # Removed CREATE SCHEMA from here to prevent duplicate worker race conditions
         hook.run(f"""
             CREATE TABLE IF NOT EXISTS {company_table} (
                 company_id INT,
@@ -58,14 +65,12 @@ def companies_ingestion_dag():  # Fixed naming consistency
         """)
         hook.run(f"TRUNCATE TABLE {company_table};")
 
-        # Extract target fields and tuples
         target_fields = ["company_id", "company_name", "stock_symbol", "sector_id", "sector_name"]
         rows = [
             (c["companyId"], c["companyName"], c["stockSymbol"], c["sectorId"], c["sectorName"])
             for c in companies
         ]
 
-        # Use Airflow's built-in bulk inserter for plain inserts
         hook.insert_rows(table=company_table, rows=rows, target_fields=target_fields)
         print(f"Inserted {len(rows)} companies")
 
@@ -86,7 +91,7 @@ def companies_ingestion_dag():  # Fixed naming consistency
     def load_share_prices(stocks: list[dict]) -> None:
         hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
 
-        hook.run(f"CREATE SCHEMA IF NOT EXISTS {RAW_SCHEMA};")
+        # Removed CREATE SCHEMA from here to prevent duplicate worker race conditions
         hook.run(f"""
             CREATE TABLE IF NOT EXISTS {stock_table} (
                 stock_symbol VARCHAR,
@@ -106,42 +111,23 @@ def companies_ingestion_dag():  # Fixed naming consistency
                 as_of_date_string VARCHAR,
                 trade_date VARCHAR,
                 data_type VARCHAR,
-                loaded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-                CONSTRAINT unique_stock_trade_date UNIQUE (stock_symbol, trade_date)
+                loaded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             );
         """)
 
-        # Fast bulk upsert using execute_values from psycopg2 via Hook connection
-        upsert_query = f"""
+        hook.run(f"""
+            ALTER TABLE {stock_table} 
+            DROP CONSTRAINT IF EXISTS unique_stock_trade_date;
+        """)
+
+        append_query = f"""
             INSERT INTO {stock_table}
             (
                 stock_symbol, company_name, no_of_transactions, max_price, min_price,
                 opening_price, closing_price, amount, previous_closing, difference_rs,
                 percent_change, volume, ltv, as_of_date, as_of_date_string, trade_date, data_type
             )
-            VALUES %s
-            ON CONFLICT (stock_symbol, trade_date) 
-            DO UPDATE SET
-                company_name = EXCLUDED.company_name,
-                no_of_transactions = EXCLUDED.no_of_transactions,
-                max_price = EXCLUDED.max_price,
-                min_price = EXCLUDED.min_price,
-                opening_price = EXCLUDED.opening_price,
-                closing_price = EXCLUDED.closing_price,
-                amount = EXCLUDED.amount,
-                previous_closing = EXCLUDED.previous_closing,
-                difference_rs = EXCLUDED.difference_rs,
-                percent_change = EXCLUDED.percent_change,
-                volume = EXCLUDED.volume,
-                ltv = EXCLUDED.ltv,
-                as_of_date = EXCLUDED.as_of_date,
-                as_of_date_string = EXCLUDED.as_of_date_string,
-                data_type = EXCLUDED.data_type,
-                loaded_at = CURRENT_TIMESTAMP
-            WHERE 
-                ({stock_table}.closing_price IS DISTINCT FROM EXCLUDED.closing_price OR
-                {stock_table}.volume IS DISTINCT FROM EXCLUDED.volume OR
-                {stock_table}.no_of_transactions IS DISTINCT FROM EXCLUDED.no_of_transactions);
+            VALUES %s;
         """
 
         rows = [
@@ -154,22 +140,25 @@ def companies_ingestion_dag():  # Fixed naming consistency
             for s in stocks
         ]
 
-        # Use execute_values for efficient, native Postgres array-based bulk upserts
         from psycopg2.extras import execute_values
         conn = hook.get_conn()
         with conn.cursor() as cur:
-            execute_values(cur, upsert_query, rows)
+            execute_values(cur, append_query, rows)
             conn.commit()
         conn.close()
 
-        print(f"Processed {len(rows)} records into the raw table (inserted or updated changes).")
+        print(f"Appended {len(rows)} historical records into the raw table.")
     
-    # --- TASK DEPENDENCIES (Both pipelines will run in parallel) ---
-    company_data = fetch_companies()
-    load_companies(company_data)
+    # --- FIXED TASK DEPENDENCIES WITH SEQUENTIAL SCHEMA INIT ---
+    init_schema = prepare_database_schema()
 
+    # Company processing pipeline
+    company_data = fetch_companies()
+    init_schema >> company_data >> load_companies(company_data)
+
+    # Share price processing pipeline
     share_data = fetch_share_prices()
-    load_share_prices(share_data)
+    init_schema >> share_data >> load_share_prices(share_data)
     
 
 # Instantiate the DAG
