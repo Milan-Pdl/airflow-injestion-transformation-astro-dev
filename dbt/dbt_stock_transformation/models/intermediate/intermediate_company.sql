@@ -4,11 +4,7 @@
 
 with raw as (
 
-    select 
-        
-        *
-
-    from {{ ref('stg_company') }}
+    select * from {{ ref('stg_company') }}
 
 ),
 
@@ -16,15 +12,11 @@ ranked as (
 
     select
         *,
+        -- Deduplicate strictly by the API's company identifier
         row_number() over (
-            partition by company_name
-            order by company_name desc
-        ) as rnk_name,
-
-        row_number() over (
-            partition by stock_symbol
-            order by stock_symbol desc
-        ) as rnk_symbol
+            partition by company_id
+            order by company_name desc -- pick the row variation you want to keep
+        ) as rnk_id
 
     from raw
 
@@ -33,10 +25,10 @@ ranked as (
 final as (
 
     select
+        -- Generates a clean internal surrogate key
         row_number() over (
             order by company_id
-        )::bigint as company_id,
-        company_id as source_company_id,
+        )::bigint as company_id,    
         company_name,
         stock_symbol,
         sector_id,
@@ -44,7 +36,7 @@ final as (
         current_timestamp as loaded_at
 
     from ranked
-    where rnk_name = 1 and rnk_symbol=1
+    where rnk_id = 1
 
 )
 

@@ -4,6 +4,12 @@ models:
   - name: intermediate_liveShare
     description: "Intermediate model for live share data with PostgreSQL type casting applied."
     columns:
+      - name: stock_date_key
+        description: "Surrogate key generated for deduplicated live share rows"
+        tests:
+          - not_null
+          - unique
+          
       - name: stock_symbol
         description: "Stock ticker symbol"
         tests:
