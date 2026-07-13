@@ -3,51 +3,52 @@
 ) }}
 
 with history as (
-    select *
-    from {{ ref('fct_stock_history') }}
+    select 
+*
+    from {{ ref('intermediate_share_history') }}
+
 ),
 
-volatility as (
-    select
-        stock_symbol,
-        company_name,
-        trade_date,
-        max_price,
-        min_price,
-        previous_closing,
-        case when previous_closing is not null and previous_closing <> 0
-            then ((max_price - min_price) / previous_closing) * 100
-            else null
-        end as volatility_pct,
-        (max_price - min_price) as true_range
-    from history
-    where max_price is not null and min_price is not null
-),
-
+-- Step 1: Aggregate the data using Standard Deviation and annualize it
 aggregated as (
     select
         stock_symbol,
         company_name,
-        count(distinct trade_date) as no_of_day,
-        round(avg(volatility_pct)::numeric, 6) as avg_volatility_pct,
-        round(avg(true_range)::numeric, 6) as avg_true_range,
-        max(volatility_pct) as max_volatility_pct
-    from volatility
+        count(distinct trade_date) as total_trading_days,
+        
+        -- 1. Calculate standard deviation of daily percent changes
+        round(stddev(percent_change)::numeric, 6) as daily_volatility_sd,
+        
+        -- 2. Annualize the daily volatility using the square root of 252 trading days
+        round((stddev(percent_change) * sqrt(252))::numeric, 6) as annualized_volatility_sd,
+        
+        -- 3. Accompanying metrics for context
+        round(avg(percent_change)::numeric, 6) as avg_daily_return_pct,
+        max(percent_change) as max_single_day_gain_pct
+    from history
+    where percent_change is not null
     group by stock_symbol, company_name
+    having count(distinct trade_date) > 1 -- Prevents math errors on single-day assets
 ),
 
+-- Step 2: Rank the stocks by their Annualized Volatility (highest risk/reward first)
 ranked as (
-    select *, row_number() over (order by avg_volatility_pct desc nulls last) as vol_rank from aggregated
+    select 
+        *, 
+        row_number() over (order by annualized_volatility_sd desc nulls last) as vol_rank 
+    from aggregated
 )
 
+-- Step 3: Output the top 10 most volatile stocks
 select
     stock_symbol,
     company_name,
-    no_of_day,
-    avg_true_range as true_range,
-    avg_volatility_pct as volatility_pct,
-    max_volatility_pct,
+    total_trading_days,
+    daily_volatility_sd,
+    annualized_volatility_sd,
+    avg_daily_return_pct,
+    max_single_day_gain_pct,
     vol_rank as rank
 from ranked
 where vol_rank <= 10
-order by avg_volatility_pct desc, rank
+order by annualized_volatility_sd desc, rank

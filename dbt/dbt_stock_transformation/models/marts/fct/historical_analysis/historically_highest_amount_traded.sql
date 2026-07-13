@@ -4,7 +4,7 @@
 
 with history as (
     select *
-    from {{ ref('fct_stock_history') }}
+    from {{ ref('intermediate_share_history') }}
 ),
 
 aggregated as (
