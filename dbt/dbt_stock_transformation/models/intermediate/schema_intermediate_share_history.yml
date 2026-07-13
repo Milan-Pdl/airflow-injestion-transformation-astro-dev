@@ -1,0 +1,72 @@
+version: 2
+
+models:
+  - name: intermediate_share_history
+    description: "Incremental intermediate model for share history data compiled from live share snapshots"
+    columns:
+      - name: stock_date_key
+        description: "Surrogate key representing a unique stock history record"
+        tests:
+          - not_null
+          - unique
+
+      - name: stock_symbol
+        description: "Stock ticker symbol"
+        tests:
+          - not_null
+
+      - name: company_name
+        description: "Company name associated with the stock"
+        tests:
+          - not_null
+
+      - name: no_of_transactions
+        description: "Number of transactions recorded for the trading day"
+
+      - name: max_price
+        description: "Maximum trade price observed"
+
+      - name: min_price
+        description: "Minimum trade price observed"
+
+      - name: opening_price
+        description: "Opening price for the trading session"
+
+      - name: closing_price
+        description: "Closing price for the trading session"
+
+      - name: amount
+        description: "Total traded amount"
+
+      - name: previous_closing
+        description: "Previous trading day's closing price"
+
+      - name: difference_rs
+        description: "Difference from previous close in rupees"
+
+      - name: percent_change
+        description: "Percentage change from previous close"
+
+      - name: volume
+        description: "Trading volume"
+
+      - name: ltv
+        description: "LTV indicator value"
+
+      - name: as_of_date
+        description: "Timestamp of the market snapshot"
+        tests:
+          - not_null
+
+      - name: as_of_date_string
+        description: "Raw string representation of the market snapshot timestamp"
+
+      - name: trade_date
+        description: "Trade date for the record"
+        tests:
+          - not_null
+
+      - name: loaded_at
+        description: "Timestamp when this row was loaded"
+        tests:
+          - not_null
