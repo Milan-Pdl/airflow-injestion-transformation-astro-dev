@@ -1,0 +1,34 @@
+version: 2
+
+models:
+  - name: intermediate_weekly_broker_summary
+    description: "Weekly broker activity summary for the latest scrape run, aggregated by scraped date, symbol, broker, and period range."
+    columns:
+      - name: scraped_date
+        description: "Date of the scrape run used for this weekly summary"
+        tests:
+          - not_null
+      - name: symbol
+        description: "Stock symbol for the broker activity summary"
+        tests:
+          - not_null
+      - name: broker_id
+        description: "Broker identifier associated with the aggregated quantities"
+        tests:
+          - not_null
+      - name: period_range
+        description: "Period range label for the broker activity aggregation"
+        tests:
+          - not_null
+      - name: buy_qty
+        description: "Total buy quantity aggregated for the broker and symbol"
+        tests:
+          - not_null
+      - name: sell_qty
+        description: "Total sell quantity aggregated for the broker and symbol"
+        tests:
+          - not_null
+      - name: net_qty
+        description: "Net quantity after subtracting sells from buys"
+        tests:
+          - not_null

@@ -1,0 +1,22 @@
+version: 2
+
+sources:
+  - name: raw
+    database: Stock # Change to your DB name if different
+    schema: raw
+    tables:
+      - name: broker_holding
+        description: "Raw daily scraped broker stock holding data."
+        columns:
+          - name: broker
+            data_type: varchar
+          - name: quantity
+            data_type: numeric
+          - name: type
+            data_type: varchar
+          - name: symbol
+            data_type: varchar
+          - name: period_range
+            data_type: varchar
+          - name: scraped_at
+            data_type: varchar
