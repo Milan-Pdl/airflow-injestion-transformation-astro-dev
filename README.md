@@ -3,50 +3,77 @@ A modern ELT pipeline that ingests Nepali stock market data, stores it in Postgr
 
 ---
 
-## 🚀 What this project does
-* **Fetches** company metadata and live share prices from the Nepalipaisa API.
-* **Loads** raw data into PostgreSQL tables under the `raw` schema.
-* **Runs** dbt transformations to create staging, intermediate, and mart models.
-* **Orchestrates** the full workflow using Apache Airflow.
+## Getting started
+
+Prerequisites:
+- Python 3.10+ and pip
+- dbt (installed via `pip install -r requirements.txt` or in Docker)
+- PostgreSQL instance and connection credentials
+
+Local setup (example):
+
+```bash
+python -m venv .venv
+source .venv/Scripts/activate   # Windows: .venv\\Scripts\\activate
+pip install -r requirements.txt
+```
+
+Set your dbt/profile credentials in `dbt/dbt_stock_transformation/profiles.yml` or via environment variables.
 
 ---
 
-## 📦 Core components
+## Common commands
 
-### 1. Airflow
-* `dags/master_dag.py` triggers the end-to-end workflow.
-* `dags/injestion_dag.py` performs API ingestion and raw table loads.
-* `dags/dbt_class_dag.py` runs the dbt transformation DAG via Astronomer Cosmos.
+- Compile dbt models:
 
-### 2. dbt
-Located at `dbt/dbt_stock_transformation/`
-* `models/staging/` — defines raw staging models.
-* `models/intermediate/` — builds cleaned intermediate tables.
-* `models/marts/` — creates analytics-ready dimensional and fact tables.
-* `profiles.yml` — defines dbt connection settings.
+```bash
+dbt compile --project-dir dbt/dbt_stock_transformation
+```
 
-### 3. Docker / runtime
-* `Dockerfile` installs dbt into a dedicated virtual environment inside the Astro runtime.
-* `requirements.txt` and `packages.txt` define Python and OS dependencies.
+- Run a single model:
 
----
+```bash
+dbt run --models intermediate.company_not_in_ordinary_market --project-dir dbt/dbt_stock_transformation
+```
 
-## 🌐 Workflow overview
-1. `master_workflow` triggers the ingestion DAG: `companies_ingestion`.
-2. Ingestion collects and loads two raw datasets:
-   * `raw.company`
-   * `raw.stock_market_data`
-3. After ingestion completes, `dbt_stock_transformation_cosmos` runs the dbt models.
-4. dbt builds the warehouse layers and produces final reporting-ready tables.
+- Run tests:
+
+```bash
+dbt test --project-dir dbt/dbt_stock_transformation
+```
+
+- Start Airflow locally (Astro dev):
+
+```bash
+astro dev start
+```
 
 ---
 
-## 📁 Project structure
-```text
-├── dags/
-│   ├── master_dag.py
-│   ├── injestion_dag.py
-│   └── dbt_class_dag.py
+## Project layout
+
+The key folders:
+
+- [dags](dags): Airflow DAGs and operators.
+- [dbt/dbt_stock_transformation](dbt/dbt_stock_transformation): dbt project with staging, intermediate, and marts models.
+- `Dockerfile`, `requirements.txt`, `packages.txt`: runtime and dependency manifests.
+
+---
+
+## Notes & contributions
+- The dbt intermediate models implement deduplication and basic data quality filters (see `intermediate/intermediate_company.sql`).
+- If you change database credentials, update `dbt/dbt_stock_transformation/profiles.yml` and the Airflow connections used by the DAGs.
+
+Contributions welcome — open an issue or a PR with a clear description of the change.
+
+---
+
+## License
+This repository is provided as-is. Add a license file if you plan to share publicly.
+
+---
+
+File references: see [dags](dags) and [dbt/dbt_stock_transformation](dbt/dbt_stock_transformation).
 ├── dbt/
 │   └── dbt_stock_transformation/
 │       ├── dbt_project.yml
