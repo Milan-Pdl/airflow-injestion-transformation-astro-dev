@@ -1,0 +1,54 @@
+# Astro CLI Commands – Quick Reference
+
+## 1. Local Development & Testing
+
+| Command                      | Purpose                                                                                                        |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `astro dev start`            | Builds the Docker image and starts all local Airflow components (Webserver, Scheduler, Triggerer, PostgreSQL). |
+| `astro dev stop`             | Stops all running local Airflow Docker containers.                                                             |
+| `astro dev restart`          | Restarts the local Airflow containers. Useful after changing environment variables or Python packages.         |
+| `astro dev start --no-cache` | Forces a clean rebuild of the Docker image. Use after modifying the `Dockerfile` or `requirements.txt`.        |
+| `astro dev parse`            | Parses DAGs to detect syntax and import errors without starting the Airflow webserver.                         |
+
+---
+
+## 2. Debugging & Logs
+
+| Command                      | Purpose                                                                                                                                                                                       |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `astro dev logs`             | Streams live logs from all local Airflow containers.                                                                                                                                          |
+| `astro dev logs --scheduler` | Streams Scheduler logs. Useful for diagnosing DAG parsing, scheduling, and task execution issues.                                                                                             |
+| `astro dev logs --webserver` | Streams Webserver logs.                                                                                                                                                                       |
+| `astro dev bash`             | Opens an interactive Bash shell inside the running `airflow-webserver` container as the `airflow` user. Useful for inspecting files, checking installed packages, or running Python commands. |
+| `astro dev pytest`           | Runs unit tests inside the local Airflow container environment.                                                                                                                               |
+
+### Debugging Tip
+
+| Scenario                                          | Command                             |
+| ------------------------------------------------- | ----------------------------------- |
+| Docker image build fails during `astro dev start` | `astro dev start --verbosity debug` |
+
+**Why use it?**
+Displays the complete Docker build log line by line, making it easier to identify build errors.
+
+---
+
+## 3. Project & Cloud Deployment
+
+| Command                 | Purpose                                                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `astro dev init`        | Creates a new Astro project with the recommended structure (`dags/`, `include/`, `plugins/`, `Dockerfile`, `requirements.txt`). |
+| `astro login`           | Authenticates the Astro CLI with Astronomer Cloud or Astronomer Software.                                                       |
+| `astro deployment list` | Lists all deployments you have access to, including their Deployment IDs.                                                       |
+| `astro deploy`          | Builds your project and deploys it to your configured Astronomer Cloud deployment.                                              |
+
+---
+
+# Quick Workflow
+
+| Step | Command                      | Purpose                                                            |
+| ---- | ---------------------------- | ------------------------------------------------------------------ |
+| 1    | `astro dev start --no-cache` | Clean build after updating the `Dockerfile` or `requirements.txt`. |
+| 2    | `astro dev parse`            | Validate DAG syntax and imports.                                   |
+| 3    | `astro dev logs --scheduler` | Check Scheduler logs if DAGs or tasks fail.                        |
+| 4    | `astro dev bash`             | Open a shell inside the Airflow container for debugging.           |

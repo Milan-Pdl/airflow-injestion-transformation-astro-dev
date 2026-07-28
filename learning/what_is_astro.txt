@@ -1,0 +1,80 @@
+# What is Astro (Astronomer)?
+
+In this project, **Astro** refers to the **Astronomer Airflow Platform**, not the JavaScript web framework.
+
+Astronomer provides tools and managed infrastructure that make it easier to develop, test, deploy, and manage **Apache Airflow** workflows.
+
+---
+
+# What Astronomer (Astro) Provides
+
+| Component                             | Description                                                                                                                                                                                  |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Astro CLI (`astro`)**               | An open-source command-line tool that lets you create and manage a complete local Apache Airflow environment using Docker. A single command like `astro dev start` launches Airflow locally. |
+| **Astro Runtime**                     | Pre-built Docker base images (such as `astrocrpublic.azurecr.io/runtime`) that are optimized for Airflow with improved stability, security, and performance.                                 |
+| **Astro Cloud / Astronomer Software** | A managed Airflow platform for deploying, monitoring, and scaling Airflow environments in production without managing Kubernetes clusters or Airflow infrastructure manually.                |
+
+---
+
+# How Astro Fits into This Project
+
+| Tool / Command          | Role in the Workflow                                                                                                                     |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dockerfile**          | Uses Astronomer's Runtime base image and installs additional tools such as Playwright and dbt.                                           |
+| **`astro dev start`**   | Builds the Docker image and starts all required Airflow services locally, including the Webserver, Scheduler, Triggerer, and PostgreSQL. |
+| **`astro dev stop`**    | Stops all locally running Airflow containers.                                                                                            |
+| **`astro dev restart`** | Restarts the local Airflow environment after configuration or dependency changes.                                                        |
+| **`astro dev parse`**   | Validates DAGs by checking for syntax and import errors without starting the Airflow webserver.                                          |
+| **`astro dev logs`**    | Displays logs from the running Airflow containers for debugging.                                                                         |
+| **`astro dev bash`**    | Opens a shell inside the Airflow container for inspecting packages, files, or executing commands.                                        |
+| **`astro deploy`**      | Builds and deploys the Airflow project to an Astronomer Cloud deployment.                                                                |
+
+---
+
+# Typical Development Workflow
+
+| Step | Command                      | Purpose                                            |
+| ---- | ---------------------------- | -------------------------------------------------- |
+| 1    | `astro dev start`            | Start the local Airflow environment.               |
+| 2    | `astro dev parse`            | Verify that DAGs load correctly.                   |
+| 3    | `astro dev logs --scheduler` | Inspect Scheduler logs if tasks or DAGs fail.      |
+| 4    | `astro dev bash`             | Debug inside the running Airflow container.        |
+| 5    | `astro deploy`               | Deploy the project to Astronomer Cloud when ready. |
+
+---
+
+# Astro Architecture
+
+```text
+                Developer
+                     │
+             Astro CLI (astro)
+                     │
+        ┌────────────┴────────────┐
+        │                         │
+   Local Development        Production Deployment
+        │                         │
+   Docker Containers        Astronomer Cloud
+        │                         │
+ ┌───────────────────┐      ┌──────────────────┐
+ │ Airflow Webserver │      │ Managed Airflow  │
+ │ Airflow Scheduler │ ───► │ Environment      │
+ │ Triggerer         │      │                  │
+ │ PostgreSQL        │      │ Monitoring       │
+ └───────────────────┘      │ Scaling          │
+                             │ Logging          │
+                             └──────────────────┘
+```
+
+---
+
+# Important Note
+
+> **Astro** can refer to two different technologies:
+
+| Astro                      | Used For                                                                              |
+| -------------------------- | ------------------------------------------------------------------------------------- |
+| **Astronomer (Astro CLI)** | Apache Airflow development, orchestration, and deployment (**used in this project**). |
+| **Astro (astro.build)**    | A JavaScript framework for building fast, content-focused websites.                   |
+
+For this Airflow and data engineering project, **Astro always refers to Astronomer and its Airflow platform**.

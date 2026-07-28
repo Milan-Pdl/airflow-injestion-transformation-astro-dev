@@ -4,8 +4,8 @@
 
 with raw as (
     select
-        company_sk,
-        business_company_id,
+        company_id,
+        source_company_id,
         company_name,
         stock_symbol,
         sector_id,
@@ -20,8 +20,8 @@ live_share as (
 )
 
 select
-    company_sk,
-    business_company_id,
+    company_id,
+    source_company_id,
     company_name,
     stock_symbol,
     sector_id,

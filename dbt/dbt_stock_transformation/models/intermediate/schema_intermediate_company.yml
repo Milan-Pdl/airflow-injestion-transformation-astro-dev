@@ -2,26 +2,45 @@ version: 2
 
 models:
   - name: intermediate_company
-    description: "Intermediate company model with cleaned, casted, and deduplicated rows"
+    description: "Intermediate company model with SCD Type 2 attributes, filtering, and deduplication"
     columns:
       - name: company_id
-        description: "Surrogate key generated for deduplicated company rows"
+        description: "Surrogate key generated for each company version"
         tests:
           - not_null
           - unique
-          
+
+      - name: source_company_id
+        description: "Business key from the source company table"
+        tests:
+          - not_null
+
       - name: company_name
         description: "Normalized company name"
         tests:
           - not_null
+
       - name: stock_symbol
-        description: "stock symbole as per the company"    
+        description: "Stock symbol as per the company"
 
       - name: sector_id
-        description: "sector id of the company"
+        description: "Sector id of the company"
 
       - name: sector_name
-        description: "sector name as per the company"       
+        description: "Sector name as per the company"
+
+      - name: valid_from
+        description: "Start date for the current SCD Type 2 version"
+        tests:
+          - not_null
+
+      - name: valid_to
+        description: "End date for the SCD Type 2 version when the row is no longer current"
+
+      - name: is_current
+        description: "Flag indicating whether the row is the current version"
+        tests:
+          - not_null
 
       - name: loaded_at
         description: "Original creation timestamp"
