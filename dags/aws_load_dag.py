@@ -46,16 +46,18 @@ def _load_dataframe_to_aws(
     if df.empty:
         print(f"No rows returned for {table_name}; skipping S3/Iceberg load.")
         return
-
-    today = date.today().isoformat()
+    # making the partition as per the trade_date
+    # today = date.today().isoformat()
+    
     df[partition_col] = df[partition_col].astype(str)
+    partition_value = str(df['trade_date'].iloc[0])
 
     buffer = io.StringIO()
     df.to_csv(buffer, index=False)
 
     session = boto3.Session(region_name=REGION)
     s3_client = session.client("s3")
-    csv_key = f"{s3_prefix}/date={today}/{table_name}_{today}.csv"
+    csv_key = f"{s3_prefix}/date={partition_value}/{table_name}_{partition_value}.csv"
     s3_client.put_object(
         Bucket=BUCKET,
         Key=csv_key,
@@ -63,8 +65,12 @@ def _load_dataframe_to_aws(
     )
     print(f"Uploaded raw CSV to s3://{BUCKET}/{csv_key}")
 
+    latest_csv = wr.s3.read_csv(
+        path=f"s3://{BUCKET}/{s3_prefix}/date={partition_value}/{table_name}_{partition_value}.csv",
+        boto3_session=session,
+    )
     wr.athena.to_iceberg(
-        df=df,
+        df=latest_csv,
         database=GLUE_DATABASE,
         table=table_name,
         table_location=f"s3://{BUCKET}/iceberg-warehouse/{table_name}/",
