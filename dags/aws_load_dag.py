@@ -31,6 +31,8 @@ GLUE_DATABASE = _get_env("GLUE_DATABASE")
 ATHENA_WORKGROUP = _get_env("ATHENA_WORKGROUP")
 PG_SCHEMA_INTERMEDIATE = _get_env("PG_SCHEMA_intermediate")
 PG_SCHEMA_BROKER = _get_env("PG_SCHEMA_fct_historical_weekly_broker_holding_summary")
+DAILY_STOCK_TABLE = _get_env("daily_stock")
+WEEKLY_BROKER_TABLE = _get_env("weekly_broker_holding")
 
 
 def _load_dataframe_to_aws(
@@ -50,7 +52,11 @@ def _load_dataframe_to_aws(
     # today = date.today().isoformat()
     
     df[partition_col] = df[partition_col].astype(str)
-    partition_value = str(df['trade_date'].iloc[0])
+    # making dynamic
+    if table_name == "live_share_iceberg":
+        partition_value = df["trade_date"].iloc[0]
+    elif table_name == "weekly_broker_summary_iceberg":
+        partition_value = df["scraped_date"].iloc[0]
 
     buffer = io.StringIO()
     df.to_csv(buffer, index=False)
@@ -100,7 +106,7 @@ def aws_ecosystem_load_dag():
                 max_price, min_price, opening_price, closing_price, amount,
                 previous_closing, difference_rs, percent_change, volume, ltv,
                 as_of_date, as_of_date_string, trade_date, loaded_at
-            FROM {PG_SCHEMA_INTERMEDIATE}."intermediate_liveShare"
+            FROM {PG_SCHEMA_INTERMEDIATE}."{DAILY_STOCK_TABLE}"
         """
         _load_dataframe_to_aws(
             query,
@@ -127,7 +133,7 @@ def aws_ecosystem_load_dag():
                 rank_2_dumper,
                 rank_3_dumper,
                 sentiment_status
-            FROM {PG_SCHEMA_BROKER}.fct_weekly_broker_holding_analysis_summary
+            FROM {PG_SCHEMA_BROKER}."{WEEKLY_BROKER_TABLE}"
         """
         _load_dataframe_to_aws(
             query,
