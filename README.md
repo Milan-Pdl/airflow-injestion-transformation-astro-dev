@@ -1,76 +1,60 @@
-Stock Data Ingestion & Transformation
-====================================
+# Stock Data Ingestion & Transformation
+A modern ELT pipeline that ingests Nepali stock market data, stores it in PostgreSQL, and transforms it with dbt.
 
-Overview
---------
-This repository contains an ELT pipeline that ingests Nepali stock market data, stores raw data in PostgreSQL, and transforms it using dbt into staging, intermediate, and marts layers. Workflows are orchestrated with Apache Airflow.
+---
 
-Prerequisites
--------------
-- Python 3.10+ and pip
-- dbt (install via pip or use the provided Dockerfile)
-- PostgreSQL instance and connection credentials
+## 🚀 What this project does
+* **Fetches** company metadata and live share prices from the Nepalipaisa API.
+* **Loads** raw data into PostgreSQL tables under the `raw` schema.
+* **Runs** dbt transformations to create staging, intermediate, and mart models.
+* **Orchestrates** the full workflow using Apache Airflow.
 
-Quick local setup
------------------
+---
 
-Windows example (PowerShell):
+## 📦 Core components
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\activate
-pip install -r requirements.txt
-```
+### 1. Airflow
+* `dags/master_dag.py` triggers the end-to-end workflow.
+* `dags/injestion_dag.py` performs API ingestion and raw table loads.
+* `dags/dbt_class_dag.py` runs the dbt transformation DAG via Astronomer Cosmos.
 
-Set your dbt profile in `dbt/dbt_stock_transformation/profiles.yml` or provide credentials via environment variables.
+### 2. dbt
+Located at `dbt/dbt_stock_transformation/`
+* `models/staging/` — defines raw staging models.
+* `models/intermediate/` — builds cleaned intermediate tables.
+* `models/marts/` — creates analytics-ready dimensional and fact tables.
+* `profiles.yml` — defines dbt connection settings.
 
-Common commands
----------------
+### 3. Docker / runtime
+* `Dockerfile` installs dbt into a dedicated virtual environment inside the Astro runtime.
+* `requirements.txt` and `packages.txt` define Python and OS dependencies.
 
-Compile dbt models:
+---
 
-```bash
-dbt compile --project-dir dbt/dbt_stock_transformation
-```
+## 🌐 Workflow overview
+1. `master_workflow` triggers the ingestion DAG: `companies_ingestion`.
+2. Ingestion collects and loads two raw datasets:
+   * `raw.company`
+   * `raw.stock_market_data`
+3. After ingestion completes, `dbt_stock_transformation_cosmos` runs the dbt models.
+4. dbt builds the warehouse layers and produces final reporting-ready tables.
 
-Run a single model:
+---
 
-```bash
-dbt run --models intermediate.company_not_in_ordinary_market --project-dir dbt/dbt_stock_transformation
-```
-
-Run dbt tests:
-
-```bash
-dbt test --project-dir dbt/dbt_stock_transformation
-```
-
-Start Airflow locally (Astronomer/Astro):
-
-```bash
-astro dev start
-```
-
-Project layout
---------------
-
-- `dags/` — Airflow DAGs and operators (master, ingestion, dbt runner).
-- `dbt/dbt_stock_transformation/` — dbt project: models, macros, and profiles.
-- `Dockerfile`, `requirements.txt`, `packages.txt` — runtime and dependency manifests.
-
-Notes
------
-- See `dbt/dbt_stock_transformation/models/intermediate/intermediate_company.sql` for deduplication and data-quality logic used by the intermediate models.
-- If you change database credentials, update both the dbt profile and Airflow connections used by the DAGs.
-
-Contributing
-------------
-Open issues and PRs. For changes to dbt models, include tests and a short description of the data-change rationale.
-
-License
--------
-Add a `LICENSE` file if you plan to publish or share this repository.
-
-Contact
--------
-For questions about setup or running the pipeline, open an issue or contact the project owner.
+## 📁 Project structure
+```text
+├── dags/
+│   ├── master_dag.py
+│   ├── injestion_dag.py
+│   └── dbt_class_dag.py
+├── dbt/
+│   └── dbt_stock_transformation/
+│       ├── dbt_project.yml
+│       ├── profiles.yml
+│       └── models/
+│           ├── staging/
+│           ├── intermediate/
+│           └── marts/
+├── Dockerfile
+├── requirements.txt
+└── packages.txt
