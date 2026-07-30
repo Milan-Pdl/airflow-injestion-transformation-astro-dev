@@ -2,18 +2,25 @@
     materialized='table'
 ) }}
 
-with raw as (
+with cleaned as (
 
-    select *,
-    -- Generating the surrogate key
-    {{ dbt_utils.generate_surrogate_key(['stock_symbol', 'as_of_date']) }} as stock_date_key,
-    row_number() over (
-        partition by stock_symbol, as_of_date
-        order by loaded_at desc 
-    ) as rnk_id
+    select
+        *,
+        -- Generate surrogate key
+        {{ dbt_utils.generate_surrogate_key(['stock_symbol', 'as_of_date']) }} as stock_date_key,
+        
+        -- Safely cast date/timestamp fields once
+        nullif(as_of_date, '')::timestamp as as_of_date_parsed,
+        nullif(trade_date, '')::date as trade_date_parsed,
+
+        -- Deduplicate records
+        row_number() over (
+            partition by stock_symbol, as_of_date
+            order by loaded_at desc 
+        ) as rnk_id
     from {{ ref('stg_liveShare') }}
 
-) -- <-- Removed trailing comma here
+)
 
 select
     stock_date_key,
@@ -30,9 +37,10 @@ select
     nullif(percent_change, '')::numeric as percent_change,
     nullif(volume, '')::bigint as volume,
     nullif(ltv, '')::numeric as ltv,
-    nullif(as_of_date, '')::timestamp as as_of_date,
+    as_of_date_parsed as as_of_date,
     as_of_date_string::text as as_of_date_string,
-    nullif(trade_date, '')::date as trade_date,
+    trade_date_parsed as trade_date,
     current_timestamp as loaded_at
-from raw
+from cleaned
 where rnk_id = 1
+  and as_of_date_parsed = (select max(as_of_date_parsed) from cleaned)
