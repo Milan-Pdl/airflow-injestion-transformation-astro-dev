@@ -68,9 +68,10 @@ models:
                 broker_holding_analysis:
                   +materialized: table
                   +schema: broker_holding_fct  
-          # snapshots:
-#   dbtProject:  # Replace with your actual project name if different
-#     +target_schema: gold
+  snapshots:
+    dbt_stock_transformation:
+      +schema: snapshots
+      +materialized: table
 
 packages:
   - package: dbt-labs/dbt_utils
