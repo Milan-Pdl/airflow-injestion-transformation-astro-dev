@@ -4,6 +4,7 @@ import requests
 from airflow.decorators import dag, task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from pendulum import datetime
+from psycopg2.extras import execute_values
 
 COMPANIES_URL = "https://nepalipaisa.com/api/GetCompanies"
 SHARE_PRICE_URL = "https://nepalipaisa.com/api/GetTodaySharePrice"
@@ -17,19 +18,19 @@ API_HEADERS = {
 
 POSTGRES_CONN_ID = "postgres_dwh"
 RAW_SCHEMA = "raw"
-company_table = f"{RAW_SCHEMA}.company"
-stock_table = f"{RAW_SCHEMA}.stock_market_data"
+COMPANY_TABLE = f"{RAW_SCHEMA}.company"
+STOCK_TABLE = f"{RAW_SCHEMA}.stock_market_data"
+
 
 @dag(
     dag_id="companies_ingestion",
     schedule=None,
-    start_date=datetime(2026, 7, 9),       
+    start_date=datetime(2026, 7, 9),
     catchup=False,
     tags=["ingestion", "nepalipaisa"],
 )
 def companies_ingestion_dag():
 
-    # NEW INITIALIZATION TASK: Creates the schema safely before parallel workers begin
     @task()
     def prepare_database_schema() -> None:
         hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
@@ -45,17 +46,20 @@ def companies_ingestion_dag():
             timeout=60,
         )
         response.raise_for_status()
-        companies = response.json()["result"]
+        companies = response.json().get("result", [])
         print(f"Fetched {len(companies)} companies")
         return companies
 
     @task()
     def load_companies(companies: list[dict]) -> None:
+        if not companies:
+            print("No company data to load.")
+            return
+
         hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
         
-        # Removed CREATE SCHEMA from here to prevent duplicate worker race conditions
         hook.run(f"""
-            CREATE TABLE IF NOT EXISTS {company_table} (
+            CREATE TABLE IF NOT EXISTS {COMPANY_TABLE} (
                 company_id INT,
                 company_name VARCHAR,
                 stock_symbol VARCHAR,
@@ -63,16 +67,22 @@ def companies_ingestion_dag():
                 sector_name VARCHAR
             );
         """)
-        hook.run(f"TRUNCATE TABLE {company_table};")
+        hook.run(f"TRUNCATE TABLE {COMPANY_TABLE};")
 
         target_fields = ["company_id", "company_name", "stock_symbol", "sector_id", "sector_name"]
         rows = [
-            (c["companyId"], c["companyName"], c["stockSymbol"], c["sectorId"], c["sectorName"])
+            (
+                c.get("companyId"),
+                c.get("companyName"),
+                c.get("stockSymbol"),
+                c.get("sectorId"),
+                c.get("sectorName"),
+            )
             for c in companies
         ]
 
-        hook.insert_rows(table=company_table, rows=rows, target_fields=target_fields)
-        print(f"Inserted {len(rows)} companies")
+        hook.insert_rows(table=COMPANY_TABLE, rows=rows, target_fields=target_fields)
+        print(f"Inserted {len(rows)} companies into {COMPANY_TABLE}")
 
     @task()
     def fetch_share_prices() -> list[dict]:
@@ -83,17 +93,20 @@ def companies_ingestion_dag():
             timeout=60,
         )
         response.raise_for_status()
-        stocks = response.json()["result"]["stocks"]
+        stocks = response.json().get("result", {}).get("stocks", [])
         print(f"Fetched {len(stocks)} stocks")
-        return stocks    
-    
+        return stocks
+
     @task()
     def load_share_prices(stocks: list[dict]) -> None:
+        if not stocks:
+            print("No share price data to load.")
+            return
+
         hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
 
-        # Removed CREATE SCHEMA from here to prevent duplicate worker race conditions
         hook.run(f"""
-            CREATE TABLE IF NOT EXISTS {stock_table} (
+            CREATE TABLE IF NOT EXISTS {STOCK_TABLE} (
                 stock_symbol VARCHAR,
                 company_name VARCHAR,
                 no_of_transactions VARCHAR,
@@ -115,13 +128,8 @@ def companies_ingestion_dag():
             );
         """)
 
-        hook.run(f"""
-            ALTER TABLE {stock_table} 
-            DROP CONSTRAINT IF EXISTS unique_stock_trade_date;
-        """)
-
         append_query = f"""
-            INSERT INTO {stock_table}
+            INSERT INTO {STOCK_TABLE}
             (
                 stock_symbol, company_name, no_of_transactions, max_price, min_price,
                 opening_price, closing_price, amount, previous_closing, difference_rs,
@@ -132,34 +140,37 @@ def companies_ingestion_dag():
 
         rows = [
             (
-                s["stockSymbol"], s["companyName"], s["noOfTransactions"], s["maxPrice"], s["minPrice"],
-                s["openingPrice"], s["closingPrice"], s["amount"], s["previousClosing"], s["differenceRs"],
-                s["percentChange"], s["volume"], s["ltv"], s["asOfDate"], s["asOfDateString"], s["tradeDate"],
-                s["dataType"]
+                s.get("stockSymbol"), s.get("companyName"), s.get("noOfTransactions"), 
+                s.get("maxPrice"), s.get("minPrice"), s.get("openingPrice"), 
+                s.get("closingPrice"), s.get("amount"), s.get("previousClosing"), 
+                s.get("differenceRs"), s.get("percentChange"), s.get("volume"), 
+                s.get("ltv"), s.get("asOfDate"), s.get("asOfDateString"), 
+                s.get("tradeDate"), s.get("dataType")
             )
             for s in stocks
         ]
 
-        from psycopg2.extras import execute_values
-        conn = hook.get_conn()
-        with conn.cursor() as cur:
-            execute_values(cur, append_query, rows)
-            conn.commit()
-        conn.close()
+        # Use context manager to prevent connection leaks
+        with hook.get_conn() as conn:
+            with conn.cursor() as cur:
+                execute_values(cur, append_query, rows)
+                conn.commit()
 
-        print(f"Appended {len(rows)} historical records into the raw table.")
-    
-    # --- FIXED TASK DEPENDENCIES WITH SEQUENTIAL SCHEMA INIT ---
-    init_schema = prepare_database_schema()
+        print(f"Appended {len(rows)} records into {STOCK_TABLE}.")
 
-    # Company processing pipeline
-    company_data = fetch_companies()
-    init_schema >> company_data >> load_companies(company_data)
+    # --- CLEAN TASKFLOW DEPENDENCY ORCHESTRATION ---
+    schema_task = prepare_database_schema()
 
-    # Share price processing pipeline
-    share_data = fetch_share_prices()
-    init_schema >> share_data >> load_share_prices(share_data)
-    
+    # 1. Pipeline for Companies
+    companies_raw = fetch_companies()
+    schema_task >> companies_raw
+    load_companies(companies_raw)
 
-# Instantiate the DAG
+    # 2. Pipeline for Daily Share Prices
+    prices_raw = fetch_share_prices()
+    schema_task >> prices_raw
+    load_share_prices(prices_raw)
+
+
+# Instantiate DAG
 companies_ingestion_dag()

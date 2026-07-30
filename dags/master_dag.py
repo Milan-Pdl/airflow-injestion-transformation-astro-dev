@@ -32,4 +32,4 @@ with DAG(
         deferrable=True
     )
 
-    trigger_ingestion >> trigger_warehouse_build >> trigger_aws_load
+trigger_ingestion >> trigger_warehouse_build >> trigger_aws_load
