@@ -1,3 +1,8 @@
+{{ config(
+    materialized='incremental',
+    incremental_strategy='append'
+) }}
+
 with source as (
 
     select * from {{ source('raw', 'broker_holding') }}
@@ -11,12 +16,12 @@ renamed as (
         symbol::varchar as symbol,
         type::varchar as transaction_type,
         
-        -- Convert string/numeric quantity into positive integer
-        abs(quantity)::bigint as quantity,
+        -- Safely convert quantity into positive integer
+        abs(nullif(quantity::text, '')::numeric)::bigint as quantity,
         
-        -- Convert scraped_at text string to Postgres timestamp and date
-        scraped_at::timestamp as scraped_at,
-        scraped_at::date as scraped_date,
+        -- Safely convert scraped_at text string to timestamp and date
+        nullif(scraped_at, '')::timestamp as scraped_at,
+        nullif(scraped_at, '')::date as scraped_date,
         
         period_range::varchar as period_range
 
@@ -24,4 +29,11 @@ renamed as (
 
 )
 
-select * from renamed
+select * 
+from renamed
+
+{% if is_incremental() %}
+  -- Filter after timestamps are cleanly parsed
+  -- Using >= ensures same-second or same-day batch loads aren't skipped
+  where scraped_date = (select coalesce(max(scraped_date), '1900-01-01'::timestamp) from renamed)
+{% endif %}
